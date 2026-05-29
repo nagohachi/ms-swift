@@ -1,15 +1,15 @@
-"""ms-swift custom registration for the audio-only PetitMLLM variant.
+"""ms-swift custom registration for CustomLALM (audio-only large audio LM).
 
 Pass this file to `swift sft` / `swift infer` via `--custom_register_path`:
 
     swift sft --custom_register_path \
-        examples/custom/petit_mllm_audio/register.py \
-      --model <petit_mllm_audio dir from assemble.py> \
-      --model_type petit_mllm_audio \
-      --template petit_mllm_audio \
+        examples/custom/custom_lalm/register.py \
+      --model <custom_lalm dir from assemble.py> \
+      --model_type custom_lalm \
+      --template custom_lalm \
       --dataset ...
 
-The model architecture is `PetitMLLMAudioPretrainedModel`; the chat template
+The model architecture is `CustomLALMPretrainedModel`; the chat template
 is the same `<|im_start|>...<|im_end|>` shell as Qwen3, with each audio block
 expanding to `<|audio_start|><|audio_pad|><|audio_end|>` and the processor
 then expanding `<|audio_pad|>` to `K_audio` consecutive copies per clip.
@@ -42,16 +42,16 @@ from swift.utils import get_env_args, get_logger
 
 logger = get_logger()
 
-MODEL_TYPE = "petit_mllm_audio"
-TEMPLATE_TYPE = "petit_mllm_audio"
-MODEL_ARCH = "petit_mllm_audio"
+MODEL_TYPE = "custom_lalm"
+TEMPLATE_TYPE = "custom_lalm"
+MODEL_ARCH = "custom_lalm"
 AUDIO_TOKEN = "<|audio_pad|>"
 
 
 def _k_audio_per_clip(mel_lengths: torch.Tensor, stack_factor: int) -> torch.Tensor:
     """Mirror Whisper conv stride-2 subsampling then ceil-divide by stack_factor.
 
-    Must stay in sync with `processing_petit_mllm_audio.compute_audio_token_count_per_clip`.
+    Must stay in sync with `processing_custom_lalm.compute_audio_token_count_per_clip`.
     """
     encoder_lengths = mel_lengths // 2
     return (encoder_lengths + stack_factor - 1) // stack_factor
@@ -70,10 +70,10 @@ register_model_arch(
 )
 
 
-class PetitMLLMAudioLoader(ModelLoader):
-    """Loader for `petit_mllm_audio`.
+class CustomLALMLoader(ModelLoader):
+    """Loader for `custom_lalm`.
 
-    The HF dir is `trust_remote_code` and registers `PetitMLLMAudioPretrainedModel`
+    The HF dir is `trust_remote_code` and registers `CustomLALMPretrainedModel`
     against `AutoModelForCausalLM`, so the default `ModelLoader` machinery is
     enough — we just have to set `auto_model_cls` explicitly because the
     architecture name isn't in transformers' built-in mapping.
@@ -89,21 +89,21 @@ class PetitMLLMAudioLoader(ModelLoader):
 register_model(
     ModelMeta(
         MODEL_TYPE,
-        # No public Hub id — `petit_mllm_audio` checkpoints are produced
+        # No public Hub id — `custom_lalm` checkpoints are produced
         # locally by `assemble.py`. Users pass `--model <local dir>`.
         [ModelGroup([])],
-        PetitMLLMAudioLoader,
+        CustomLALMLoader,
         template=TEMPLATE_TYPE,
         is_multimodal=True,
         model_arch=MODEL_ARCH,
-        architectures=["PetitMLLMAudioPretrainedModel"],
+        architectures=["CustomLALMPretrainedModel"],
         requires=["transformers>=4.50", "librosa", "einops", "soundfile"],
         tags=["audio"],
     )
 )
 
 
-class PetitMLLMAudioTemplate(Template):
+class CustomLALMTemplate(Template):
     # `<|audio_pad|>` is the post-expansion audio token. We mark it as a
     # placeholder so truncation doesn't slice through an audio run and so
     # `safe_decode` abbreviates the run on logging.
@@ -135,7 +135,7 @@ class PetitMLLMAudioTemplate(Template):
         inputs: StdTemplateInputs,
     ) -> List[Context]:
         assert media_type == "audio", (
-            f"petit_mllm_audio only supports audio inputs, got {media_type}"
+            f"custom_lalm only supports audio inputs, got {media_type}"
         )
         return ["<|audio_start|><|audio_pad|><|audio_end|>"]
 
@@ -218,7 +218,7 @@ register_template(
         default_system="You are a helpful assistant.",
         stop_words=["<|endoftext|>", "<|im_end|>"],
         agent_template="hermes",
-        template_cls=PetitMLLMAudioTemplate,
+        template_cls=CustomLALMTemplate,
     )
 )
 
@@ -229,7 +229,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 2:
         print(
-            "Usage: python register.py <petit_mllm_audio_dir> "
+            "Usage: python register.py <custom_lalm_dir> "
             "[<wav_path>]"
         )
         sys.exit(1)

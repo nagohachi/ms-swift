@@ -1,6 +1,6 @@
-"""HF config for the audio-only PetitMLLM variant.
+"""HF config for CustomLALM (audio-only large audio LM).
 
-Layout mirrors the upstream `petit_mllm` config (Qwen3 LM + Parakeet audio
+Layout mirrors `PetitMLLM-5B`'s `petit_mllm` config (Qwen3 LM + Parakeet audio
 encoder + image tower) with the image side removed: only `lm_config` and
 `audio_config` remain.
 
@@ -13,8 +13,8 @@ so configs saved by this class are forward-compatible with `AutoConfig` /
 from transformers import AutoConfig, PretrainedConfig
 
 
-class PetitMLLMAudioConfig(PretrainedConfig):
-    model_type = "petit_mllm_audio"
+class CustomLALMConfig(PretrainedConfig):
+    model_type = "custom_lalm"
 
     def __init__(
         self,

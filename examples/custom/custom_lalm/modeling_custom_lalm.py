@@ -1,6 +1,6 @@
-"""Audio-only PetitMLLM (Whisper encoder + MLP projector + Qwen3 LM).
+"""CustomLALM — audio-only large audio LM (Whisper encoder + MLP projector + Qwen3 LM).
 
-This is a stripped-down variant of `PetitMLLM-5B`'s `PetitMLLMPretrainedModel`:
+Architecturally a stripped-down variant of `PetitMLLM-5B`'s `PetitMLLMPretrainedModel`:
 
 - image_tower / image_projector removed.
 - ParakeetEncoder replaced with the encoder half of a Whisper checkpoint
@@ -27,12 +27,12 @@ from transformers.utils.generic import ModelOutput
 # saved checkpoint dir, where the relative form is required; (2) as a flat
 # module from `sys.path` (e.g. by `assemble.py`). The fallback handles (2).
 try:
-    from .configuration_petit_mllm_audio import PetitMLLMAudioConfig
+    from .configuration_custom_lalm import CustomLALMConfig
 except ImportError:
-    from configuration_petit_mllm_audio import PetitMLLMAudioConfig
+    from configuration_custom_lalm import CustomLALMConfig
 
 
-class PetitMLLMAudioProjector(nn.Module):
+class CustomLALMProjector(nn.Module):
     """Stack `stack_factor` consecutive audio frames, then MLP-project to LM dim.
 
     Identical shape contract to `PetitMLLM-5B`'s `PetitMLLMAudioProjector` so the
@@ -87,8 +87,8 @@ class PetitMLLMAudioProjector(nn.Module):
         return self.mlp(x), attention_mask
 
 
-class PetitMLLMAudioPretrainedModel(PreTrainedModel, GenerationMixin):
-    config_class = PetitMLLMAudioConfig
+class CustomLALMPretrainedModel(PreTrainedModel, GenerationMixin):
+    config_class = CustomLALMConfig
     # Transformers' attention-backend negotiation walks every submodule and
     # refuses dispatch if any wrapper class lacks the corresponding flag.
     # We don't implement attention ourselves — both submodules (Qwen3 LM and
@@ -98,13 +98,13 @@ class PetitMLLMAudioPretrainedModel(PreTrainedModel, GenerationMixin):
     _supports_flash_attn_2 = True
     _supports_attention_backend = True
 
-    def __init__(self, config: PetitMLLMAudioConfig):
+    def __init__(self, config: CustomLALMConfig):
         super().__init__(config)
         self.language_model = AutoModelForCausalLM.from_config(
             config.lm_config, trust_remote_code=True
         )
         self.audio_tower = WhisperEncoder(config.audio_config)
-        self.audio_projector = PetitMLLMAudioProjector(
+        self.audio_projector = CustomLALMProjector(
             audio_hidden_size=config.audio_config.d_model,
             stack_factor=config.audio_stack_factor,
             hidden_size=config.lm_config.hidden_size,

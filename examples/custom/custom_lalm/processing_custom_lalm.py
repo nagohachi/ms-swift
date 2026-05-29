@@ -1,7 +1,7 @@
-"""Processor for the audio-only PetitMLLM variant.
+"""Processor for CustomLALM (audio-only large audio LM).
 
 Wraps the Whisper feature extractor + Qwen3 tokenizer. The contract with the
-model side is identical to the upstream `petit_mllm` processor for the audio
+model side is identical to the upstream `PetitMLLM-5B` processor for the audio
 portion:
 
 - The chat-template-rendered text contains exactly one `<|audio_pad|>`
@@ -39,7 +39,7 @@ def compute_audio_token_count_per_clip(
 
     Args:
         mel_lengths: (N_clips,) of real (non-padded) mel-frame counts per clip.
-        stack_factor: from `PetitMLLMAudioConfig.audio_stack_factor`.
+        stack_factor: from `CustomLALMConfig.audio_stack_factor`.
 
     Returns:
         (N_clips,) of `K_audio` per clip.
@@ -51,7 +51,7 @@ def compute_audio_token_count_per_clip(
     return (encoder_lengths + stack_factor - 1) // stack_factor
 
 
-class PetitMLLMAudioProcessor(ProcessorMixin):
+class CustomLALMProcessor(ProcessorMixin):
     """Combines the Whisper feature extractor and Qwen3 tokenizer."""
 
     attributes = ["audio_processor", "tokenizer"]
@@ -204,7 +204,7 @@ class PetitMLLMAudioProcessor(ProcessorMixin):
         if self._auto_class is not None:
             proc_cfg["auto_map"] = {
                 "AutoProcessor": (
-                    f"processing_petit_mllm_audio.{self.__class__.__name__}"
+                    f"processing_custom_lalm.{self.__class__.__name__}"
                 )
             }
             from transformers.dynamic_module_utils import custom_object_save

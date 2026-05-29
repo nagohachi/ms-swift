@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Example: SFT an audio-only PetitMLLM model on an ASR dataset.
+# Example: SFT a CustomLALM (audio-only LALM) model on an ASR dataset.
 #
-# Prereq: run `python assemble.py --output ./petit_mllm_audio_init` first.
+# Prereq: run `python assemble.py --output ./custom_lalm_init` first.
 #
 # The audio encoder (`audio_tower`) maps to ms-swift's `vision_tower` slot, so
 # `--freeze_vit true` freezes the Whisper encoder. The MLP projector is the
@@ -11,15 +11,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MODEL_DIR="${MODEL_DIR:-${SCRIPT_DIR}/petit_mllm_audio_init}"
-OUTPUT_DIR="${OUTPUT_DIR:-${SCRIPT_DIR}/output/petit_mllm_audio_sft}"
+MODEL_DIR="${MODEL_DIR:-${SCRIPT_DIR}/custom_lalm_init}"
+OUTPUT_DIR="${OUTPUT_DIR:-${SCRIPT_DIR}/output/custom_lalm_sft}"
 DATASET="${DATASET:-AI-ModelScope/LibriSpeech#1000}"
 
 swift sft \
     --custom_register_path "${SCRIPT_DIR}/register.py" \
     --model "${MODEL_DIR}" \
-    --model_type petit_mllm_audio \
-    --template petit_mllm_audio \
+    --model_type custom_lalm \
+    --template custom_lalm \
     --tuner_type full \
     --freeze_llm false \
     --freeze_vit true \

@@ -1,13 +1,13 @@
-"""Build an initial audio-only PetitMLLM checkpoint.
+"""Build an initial CustomLALM checkpoint.
 
 Combines a base LLM (default `Qwen/Qwen3-1.7B`) with a Whisper audio encoder
 (default `openai/whisper-medium`) and an MLP audio projector, then writes the
 result as a `trust_remote_code`-loadable HF directory.
 
 Usage:
-    python assemble.py --output ./petit_mllm_audio_init
+    python assemble.py --output ./custom_lalm_init
     python assemble.py --llm Qwen/Qwen3-4B --audio openai/whisper-large-v3 \
-        --output ./petit_mllm_audio_large_init
+        --output ./custom_lalm_large_init
 
 After this the directory can be passed to `swift sft --model <dir>` together
 with `--custom_register_path .../register.py`.
@@ -32,11 +32,11 @@ from transformers import (
 import sys
 
 sys.path.insert(0, str(Path(__file__).parent))
-from configuration_petit_mllm_audio import PetitMLLMAudioConfig  # noqa: E402
-from modeling_petit_mllm_audio import PetitMLLMAudioPretrainedModel  # noqa: E402
-from processing_petit_mllm_audio import (  # noqa: E402
+from configuration_custom_lalm import CustomLALMConfig  # noqa: E402
+from modeling_custom_lalm import CustomLALMPretrainedModel  # noqa: E402
+from processing_custom_lalm import (  # noqa: E402
     AUDIO_TOKEN,
-    PetitMLLMAudioProcessor,
+    CustomLALMProcessor,
 )
 
 AUDIO_START = "<|audio_start|>"
@@ -118,7 +118,7 @@ def main() -> None:
     # The feature extractor's default behaviour produces fixed-length 30s
     # input; the model's mask-pooling handles the per-clip valid length.
 
-    print(f"[3/6] Assembling petit_mllm_audio config")
+    print(f"[3/6] Assembling custom_lalm config")
     lm_config = lm.config
     audio_config = whisper.config
     # Persist dtype names as strings so `from_pretrained` finds them on load.
@@ -127,7 +127,7 @@ def main() -> None:
     for cfg in (lm_config, audio_config):
         setattr(cfg, "dtype", args.dtype)
 
-    config = PetitMLLMAudioConfig(
+    config = CustomLALMConfig(
         lm_config=lm_config,
         audio_config=audio_config,
         audio_stack_factor=args.audio_stack_factor,
@@ -135,15 +135,15 @@ def main() -> None:
         dtype=args.dtype,
     )
     config.auto_map = {
-        "AutoConfig": "configuration_petit_mllm_audio.PetitMLLMAudioConfig",
+        "AutoConfig": "configuration_custom_lalm.CustomLALMConfig",
         "AutoModelForCausalLM": (
-            "modeling_petit_mllm_audio.PetitMLLMAudioPretrainedModel"
+            "modeling_custom_lalm.CustomLALMPretrainedModel"
         ),
     }
-    config.architectures = ["PetitMLLMAudioPretrainedModel"]
+    config.architectures = ["CustomLALMPretrainedModel"]
 
     print(f"[4/6] Building combined model and copying weights")
-    model = PetitMLLMAudioPretrainedModel(config)
+    model = CustomLALMPretrainedModel(config)
     # `from_config` reinstantiated the LM submodule; load the pretrained weights.
     model.language_model.load_state_dict(lm.state_dict())
     # The Whisper encoder lives under `whisper.encoder`. WhisperEncoder's
@@ -157,7 +157,7 @@ def main() -> None:
     tokenizer.chat_template = CHAT_TEMPLATE
     tokenizer.save_pretrained(out_dir)
 
-    processor = PetitMLLMAudioProcessor(
+    processor = CustomLALMProcessor(
         audio_processor=audio_feature_extractor,
         tokenizer=tokenizer,
         audio_token=AUDIO_TOKEN,
@@ -172,9 +172,9 @@ def main() -> None:
     print(f"[6/6] Copying remote-code files into {out_dir}")
     src_dir = Path(__file__).parent
     for fname in (
-        "configuration_petit_mllm_audio.py",
-        "modeling_petit_mllm_audio.py",
-        "processing_petit_mllm_audio.py",
+        "configuration_custom_lalm.py",
+        "modeling_custom_lalm.py",
+        "processing_custom_lalm.py",
     ):
         shutil.copy(src_dir / fname, out_dir / fname)
 
