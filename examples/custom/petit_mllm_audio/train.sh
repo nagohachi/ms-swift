@@ -20,7 +20,7 @@ swift sft \
     --model "${MODEL_DIR}" \
     --model_type petit_mllm_audio \
     --template petit_mllm_audio \
-    --train_type full \
+    --tuner_type full \
     --freeze_llm false \
     --freeze_vit true \
     --freeze_aligner false \

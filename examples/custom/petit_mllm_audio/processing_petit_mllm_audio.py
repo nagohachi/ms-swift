@@ -103,12 +103,15 @@ class PetitMLLMAudioProcessor(ProcessorMixin):
         data: dict[str, Any] = {}
 
         if audio:
+            # WhisperFeatureExtractor must pad to its `chunk_length` (30 s);
+            # the encoder asserts exactly 3000 mel frames, so `padding=True`
+            # (batch-longest) is not enough for short clips.
             audio_out = self.audio_processor(
                 audio,
                 sampling_rate=sampling_rate,
                 return_tensors=return_tensors,
                 return_attention_mask=True,
-                padding=True,
+                padding="max_length",
             )
             data["input_features"] = audio_out["input_features"]
             # Rename to match the model's `audio_attention_mask` kwarg.

@@ -36,7 +36,7 @@ from swift.template import (
     TemplateMeta,
     register_template,
 )
-from swift.template.utils import findall
+from swift.template.utils import Context, findall
 from swift.template.vision_utils import load_audio
 from swift.utils import get_env_args, get_logger
 
@@ -146,12 +146,15 @@ class PetitMLLMAudioTemplate(Template):
 
         # Load audio waveforms then extract Whisper mel features in batch.
         audios = [load_audio(a, self.sampling_rate) for a in inputs.audios]
+        # WhisperFeatureExtractor needs padding="max_length" to pad to the
+        # encoder's fixed 30 s window — passing `padding=True` only pads to
+        # batch-longest, and the encoder hard-asserts 3000 mel frames.
         audio_inputs = self.processor.audio_processor(
             audios,
             sampling_rate=self.sampling_rate,
             return_attention_mask=True,
             return_tensors="pt",
-            padding=True,
+            padding="max_length",
         )
         input_features = audio_inputs["input_features"]
         audio_attention_mask = audio_inputs["attention_mask"]

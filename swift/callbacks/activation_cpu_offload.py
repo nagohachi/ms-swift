@@ -1,7 +1,15 @@
 """Functionality for CPU offloading of tensors saved for backward pass."""
 import functools
 import torch
-from torch.distributed.fsdp import FSDPModule as FSDP2
+# FSDP2 (`FSDPModule`) landed in torch 2.6. On older torch we still want to
+# import this module (it's pulled in by `swift.callbacks` from `mixin.py` even
+# when the FSDP2 path isn't used). Fall back to a sentinel that fails an
+# `isinstance` check.
+try:
+    from torch.distributed.fsdp import FSDPModule as FSDP2
+except ImportError:  # torch < 2.6
+    class FSDP2:  # type: ignore[no-redef]
+        pass
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from transformers.trainer_callback import TrainerControl, TrainerState
 from transformers.training_args import TrainingArguments

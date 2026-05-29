@@ -89,6 +89,14 @@ class PetitMLLMAudioProjector(nn.Module):
 
 class PetitMLLMAudioPretrainedModel(PreTrainedModel, GenerationMixin):
     config_class = PetitMLLMAudioConfig
+    # Transformers' attention-backend negotiation walks every submodule and
+    # refuses dispatch if any wrapper class lacks the corresponding flag.
+    # We don't implement attention ourselves — both submodules (Qwen3 LM and
+    # WhisperEncoder) support sdpa/flash; advertise the same so dispatch
+    # propagates through us.
+    _supports_sdpa = True
+    _supports_flash_attn_2 = True
+    _supports_attention_backend = True
 
     def __init__(self, config: PetitMLLMAudioConfig):
         super().__init__(config)
